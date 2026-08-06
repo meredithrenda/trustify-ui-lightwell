@@ -12,7 +12,8 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  # Do not cancel in-flight publishes — Pages deploys can take >10 minutes
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -42,3 +43,6 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          # Default 10m is too short while GitHub Pages is slow
+          timeout: 1800000
