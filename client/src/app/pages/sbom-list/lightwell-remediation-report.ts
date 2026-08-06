@@ -23,9 +23,40 @@ export type LightwellRemediationReport = {
   packages: LightwellReportPackage[];
 };
 
-type SelectedSbom = {
+export type LightwellRemediationSelectedSbom = {
   id: string;
   name: string;
+};
+
+export type LightwellRemediationReportLocationState = {
+  selectedSboms: LightwellRemediationSelectedSbom[];
+  /** Open a finished report from the ready notification (skip loading). */
+  fromNotification?: boolean;
+};
+
+/**
+ * If generation finishes within this window, navigate to the report page and
+ * show a loading empty state. Longer jobs stay on the current page and use the
+ * ready notification instead.
+ */
+export const LIGHTWELL_REPORT_NAVIGATE_THRESHOLD_MS = 10_000;
+
+/**
+ * Prototype delay for demo scenarios:
+ * - 1–3 SBOMs: short wait on the report page (immediate-load path)
+ * - 4–9 SBOMs: longer loading on the report page, still under the navigate threshold
+ * - 10+ SBOMs: stay on SBOMs and surface the ready notification
+ */
+export const getLightwellReportGenerationDelayMs = (sbomCount: number) => {
+  if (sbomCount <= 3) {
+    return 1_200;
+  }
+  if (sbomCount >= 10) {
+    return 12_000;
+  }
+  // 4–9: ramp toward the navigate threshold without crossing it
+  const steps = sbomCount - 3;
+  return Math.round(1_200 + steps * 1_400);
 };
 
 const packageHasLightwellRemediation = (
@@ -35,11 +66,10 @@ const packageHasLightwellRemediation = (
   getMockRemediationVersionsForPackage(packageId, packageName).length > 0;
 
 /**
- * Build a Lightwell remediation report for one or more selected SBOMs
- * (called “applications” in report copy).
+ * Build a Lightwell remediation report for one or more selected SBOMs.
  */
 export const buildLightwellRemediationReport = (
-  selectedSboms: SelectedSbom[],
+  selectedSboms: LightwellRemediationSelectedSbom[],
 ): LightwellRemediationReport => {
   const applications: LightwellReportApplication[] = [];
   const packagesById = new Map<string, LightwellReportPackage>();

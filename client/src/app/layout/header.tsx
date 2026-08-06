@@ -1,5 +1,5 @@
 import type React from "react";
-import { useReducer, useState } from "react";
+import { useContext, useReducer, useState } from "react";
 import { type AuthContextProps, useAuth } from "react-oidc-context";
 import { useNavigate } from "react-router-dom";
 
@@ -20,6 +20,8 @@ import {
   MastheadToggle,
   MenuToggle,
   type MenuToggleElement,
+  NotificationBadge,
+  NotificationBadgeVariant,
   PageToggleButton,
   Split,
   SplitItem,
@@ -37,6 +39,7 @@ import ExternalLinkAltIcon from "@patternfly/react-icons/dist/esm/icons/external
 
 import { ThemeSelector } from "@tsd-ui/core";
 
+import { NotificationsContext } from "@app/components/NotificationsContext";
 import { isAuthRequired } from "@app/Constants";
 import getBranding from "@app/hooks/useBranding";
 import { oidcSignoutArgs } from "@app/oidc";
@@ -67,6 +70,14 @@ const HeaderAppInner: React.FC<IHeaderAppInnerProps> = ({ auth }) => {
   } = getBranding();
 
   const navigate = useNavigate();
+  const {
+    toggleDrawer,
+    isDrawerExpanded,
+    unreadCount,
+    hasUnreadAttention,
+    shouldNotifyBadge,
+    clearShouldNotifyBadge,
+  } = useContext(NotificationsContext);
 
   const [isAboutModalOpen, toggleIsAboutModalOpen] = useReducer(
     (state) => !state,
@@ -93,6 +104,12 @@ const HeaderAppInner: React.FC<IHeaderAppInnerProps> = ({ auth }) => {
         navigate("/");
       });
   };
+
+  const notificationBadgeVariant = hasUnreadAttention
+    ? NotificationBadgeVariant.attention
+    : unreadCount > 0
+      ? NotificationBadgeVariant.unread
+      : NotificationBadgeVariant.read;
 
   return (
     <>
@@ -147,7 +164,19 @@ const HeaderAppInner: React.FC<IHeaderAppInnerProps> = ({ auth }) => {
                 aria-label="header-toolbar-tasks"
                 variant="action-group-plain"
                 align={{ default: "alignEnd" }}
-              />
+              >
+                <ToolbarItem>
+                  <NotificationBadge
+                    variant={notificationBadgeVariant}
+                    onClick={toggleDrawer}
+                    aria-label="Notifications"
+                    isExpanded={isDrawerExpanded}
+                    count={unreadCount}
+                    shouldNotify={shouldNotifyBadge && unreadCount > 0}
+                    onAnimationEnd={clearShouldNotifyBadge}
+                  />
+                </ToolbarItem>
+              </ToolbarGroup>
 
               {/* toolbar items to show at desktop sizes */}
               <ToolbarGroup

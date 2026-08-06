@@ -16,6 +16,7 @@ import {
 } from "@patternfly/react-core";
 
 import { FilterToolbar } from "@app/components/FilterToolbar";
+import { NotificationsContext } from "@app/components/NotificationsContext";
 import { SimplePagination } from "@app/components/SimplePagination";
 import { ToolbarBulkSelector } from "@app/components/ToolbarBulkSelector";
 import {
@@ -25,7 +26,13 @@ import {
 import { Paths } from "@app/Routes";
 
 import { RunPolicyEvaluationModal } from "./components/RunPolicyEvaluationModal";
-import type { LightwellRemediationReportLocationState } from "./lightwell-remediation-report-page";
+import {
+  buildLightwellRemediationReport,
+  getLightwellReportGenerationDelayMs,
+  LIGHTWELL_REPORT_NAVIGATE_THRESHOLD_MS,
+  type LightwellRemediationReportLocationState,
+} from "./lightwell-remediation-report";
+import { LightwellReportReadyMessage } from "./lightwell-remediation-report-ready-message";
 import { SbomSearchContext } from "./sbom-context";
 
 interface SbomToolbarProps {
@@ -38,6 +45,8 @@ export const SbomToolbar: React.FC<SbomToolbarProps> = ({
   showActions,
 }) => {
   const navigate = useNavigate();
+  const { pushNotification, markNotificationsReadByTitle } =
+    React.useContext(NotificationsContext);
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
   const [isRunPolicyModalOpen, setIsRunPolicyModalOpen] = React.useState(false);
   const [selectedPolicyId, setSelectedPolicyId] = React.useState(
@@ -92,13 +101,56 @@ export const SbomToolbar: React.FC<SbomToolbarProps> = ({
     if (!hasSelectedSboms) {
       return;
     }
-    const state: LightwellRemediationReportLocationState = {
-      selectedSboms: selectedItems.map((sbom) => ({
-        id: sbom.id,
-        name: sbom.name,
-      })),
-    };
-    navigate(Paths.sbomLightwellRemediationReport, { state });
+    const selectedSboms = selectedItems.map((sbom) => ({
+      id: sbom.id,
+      name: sbom.name,
+    }));
+    const count = selectedSboms.length;
+    const delayMs = getLightwellReportGenerationDelayMs(count);
+    const willNavigate = delayMs <= LIGHTWELL_REPORT_NAVIGATE_THRESHOLD_MS;
+
+    pushNotification({
+      title: "Generating Lightwell remediation report",
+      variant: "info",
+      message: willNavigate
+        ? `Analyzing ${count} selected SBOM${count === 1 ? "" : "s"}.`
+        : `Analyzing ${count} selected SBOM${count === 1 ? "" : "s"}. Large SBOMs can take longer. You'll be notified when the report is ready.`,
+    });
+
+    if (willNavigate) {
+      const state: LightwellRemediationReportLocationState = {
+        selectedSboms,
+      };
+      navigate(Paths.sbomLightwellRemediationReport, { state });
+      return;
+    }
+
+    window.setTimeout(() => {
+      try {
+        buildLightwellRemediationReport(selectedSboms);
+        markNotificationsReadByTitle(
+          "Generating Lightwell remediation report",
+        );
+        pushNotification({
+          title: "Lightwell remediation report is ready",
+          variant: "success",
+          message: (
+            <LightwellReportReadyMessage
+              count={count}
+              selectedSboms={selectedSboms}
+            />
+          ),
+        });
+      } catch {
+        markNotificationsReadByTitle("Generating Lightwell remediation report");
+        pushNotification({
+          title: "Lightwell remediation report failed",
+          variant: "danger",
+          message:
+            "The report could not be generated. Try again with fewer SBOMs.",
+        });
+      }
+    }, delayMs);
   };
 
   return (

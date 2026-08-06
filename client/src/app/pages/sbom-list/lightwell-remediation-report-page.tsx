@@ -34,6 +34,7 @@ import {
   Progress,
   ProgressMeasureLocation,
   ProgressSize,
+  Spinner,
 } from "@patternfly/react-core";
 import {
   Table,
@@ -46,19 +47,20 @@ import {
 import DownloadIcon from "@patternfly/react-icons/dist/esm/icons/download-icon";
 
 import { DocumentMetadata } from "@app/components/DocumentMetadata";
+import { NotificationsContext } from "@app/components/NotificationsContext";
 import { Paths } from "@app/Routes";
 
 import { downloadLightwellRemediationReportCsv } from "./lightwell-remediation-report-download";
 import {
   buildLightwellRemediationReport,
+  getLightwellReportGenerationDelayMs,
   type LightwellRemediationReport,
+  type LightwellRemediationReportLocationState,
 } from "./lightwell-remediation-report";
 
 import "./lightwell-remediation-report.css";
 
-export type LightwellRemediationReportLocationState = {
-  selectedSboms: Array<{ id: string; name: string }>;
-};
+export type { LightwellRemediationReportLocationState };
 
 const isReportState = (
   state: unknown,
@@ -73,21 +75,97 @@ const isReportState = (
 export const LightwellRemediationReportPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { markNotificationsReadByTitle, pushNotification } = React.useContext(
+    NotificationsContext,
+  );
 
-  const report = React.useMemo<LightwellRemediationReport | null>(() => {
+  const selectedSboms = React.useMemo(() => {
     if (
       !isReportState(location.state) ||
       location.state.selectedSboms.length === 0
     ) {
-      return null;
+      return [];
     }
-    return buildLightwellRemediationReport(location.state.selectedSboms);
+    return location.state.selectedSboms;
   }, [location.state]);
+
+  const fromNotification =
+    isReportState(location.state) && location.state.fromNotification === true;
+
+  const selectionKey = selectedSboms.map((sbom) => sbom.id).join(",");
+
+  const [report, setReport] = React.useState<LightwellRemediationReport | null>(
+    null,
+  );
+  const [isGenerating, setIsGenerating] = React.useState(false);
+
+  React.useEffect(() => {
+    if (selectedSboms.length === 0) {
+      setReport(null);
+      setIsGenerating(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const finish = (next: LightwellRemediationReport) => {
+      if (cancelled) {
+        return;
+      }
+      setReport(next);
+      setIsGenerating(false);
+      markNotificationsReadByTitle("Generating Lightwell remediation report");
+    };
+
+    if (fromNotification) {
+      try {
+        finish(buildLightwellRemediationReport(selectedSboms));
+      } catch {
+        setIsGenerating(false);
+        pushNotification({
+          title: "Lightwell remediation report failed",
+          variant: "danger",
+          message:
+            "The report could not be generated. Try again with fewer SBOMs.",
+        });
+      }
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setIsGenerating(true);
+    setReport(null);
+
+    const timer = window.setTimeout(() => {
+      try {
+        finish(buildLightwellRemediationReport(selectedSboms));
+      } catch {
+        if (!cancelled) {
+          setIsGenerating(false);
+        }
+        markNotificationsReadByTitle("Generating Lightwell remediation report");
+        pushNotification({
+          title: "Lightwell remediation report failed",
+          variant: "danger",
+          message:
+            "The report could not be generated. Try again with fewer SBOMs.",
+        });
+      }
+    }, getLightwellReportGenerationDelayMs(selectedSboms.length));
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- regenerate when selection or entry mode changes
+  }, [selectionKey, fromNotification]);
 
   const shouldBlock = React.useCallback<BlockerFunction>(
     ({ currentLocation, nextLocation }) =>
-      report !== null && currentLocation.pathname !== nextLocation.pathname,
-    [report],
+      (report !== null || isGenerating) &&
+      currentLocation.pathname !== nextLocation.pathname,
+    [report, isGenerating],
   );
   const blocker = useBlocker(shouldBlock);
 
@@ -126,8 +204,8 @@ export const LightwellRemediationReportPage: React.FC = () => {
             <Content>
               <Content component="h1">Lightwell remediation report</Content>
               <Content component="p">
-                Impact summary for your selected applications (SBOMs). Download
-                a copy if you want to keep it.
+                Impact summary for your selected SBOMs. Download a copy if you
+                want to keep it.
               </Content>
             </Content>
           </div>
@@ -140,7 +218,19 @@ export const LightwellRemediationReportPage: React.FC = () => {
       </PageSection>
 
       <PageSection>
-        {!report ? (
+        {isGenerating ? (
+          <EmptyState
+            titleText="Generating Lightwell remediation report"
+            headingLevel="h4"
+            icon={Spinner}
+          >
+            <EmptyStateBody>
+              Analyzing {selectedSboms.length} selected SBOM
+              {selectedSboms.length === 1 ? "" : "s"} for Lightwell
+              remediations.
+            </EmptyStateBody>
+          </EmptyState>
+        ) : !report ? (
           <EmptyState
             headingLevel="h4"
             titleText="No report to show"
@@ -165,7 +255,7 @@ export const LightwellRemediationReportPage: React.FC = () => {
               title="Lightwell remediations available"
               isInline
             >
-              Based on the selected applications, Lightwell can address{" "}
+              Based on the selected SBOMs, Lightwell can address{" "}
               {report.addressableApplicationCount} of{" "}
               {report.selectedApplicationCount} and{" "}
               {report.addressablePackageCount} related package
@@ -180,7 +270,7 @@ export const LightwellRemediationReportPage: React.FC = () => {
                 <div className="lw-report__impact-grid">
                   <div className="lw-report__stat">
                     <div className="lw-report__stat-label">
-                      Applications Lightwell can address
+                      SBOMs Lightwell can address
                     </div>
                     <div className="lw-report__stat-value">
                       {report.addressableApplicationCount}
@@ -189,7 +279,7 @@ export const LightwellRemediationReportPage: React.FC = () => {
                       </span>
                     </div>
                     <div className="lw-report__stat-help">
-                      You selected {report.selectedApplicationCount} application
+                      You selected {report.selectedApplicationCount} SBOM
                       {report.selectedApplicationCount === 1 ? "" : "s"}
                     </div>
                   </div>
@@ -201,7 +291,7 @@ export const LightwellRemediationReportPage: React.FC = () => {
                       {report.addressablePackageCount}
                     </div>
                     <div className="lw-report__stat-help">
-                      Unique packages across selected applications
+                      Unique packages across selected SBOMs
                     </div>
                   </div>
                 </div>
@@ -209,27 +299,27 @@ export const LightwellRemediationReportPage: React.FC = () => {
                 <div className="lw-report__progress">
                   <Progress
                     value={coveragePercent}
-                    title="Application coverage"
+                    title="SBOM coverage"
                     measureLocation={ProgressMeasureLocation.outside}
                     size={ProgressSize.md}
-                    aria-label="Percent of selected applications Lightwell can address"
+                    aria-label="Percent of selected SBOMs Lightwell can address"
                   />
                 </div>
 
                 <DescriptionList
                   isHorizontal
                   isCompact
-                  horizontalTermWidthModifier={{ default: "24ch" }}
+                  horizontalTermWidthModifier={{ default: "20ch" }}
                 >
                   <DescriptionListGroup>
-                    <DescriptionListTerm>Selected applications</DescriptionListTerm>
+                    <DescriptionListTerm>Selected SBOMs</DescriptionListTerm>
                     <DescriptionListDescription>
                       {report.selectedApplicationCount}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                   <DescriptionListGroup>
                     <DescriptionListTerm>
-                      Addressable applications
+                      Addressable SBOMs
                     </DescriptionListTerm>
                     <DescriptionListDescription>
                       {report.addressableApplicationCount}
@@ -250,23 +340,23 @@ export const LightwellRemediationReportPage: React.FC = () => {
             <Card>
               <CardTitle>
                 <span className="lw-report__card-title">
-                  Applications Lightwell can help with
+                  SBOMs Lightwell can help with
                 </span>
               </CardTitle>
               <CardBody>
                 {report.applications.length === 0 ? (
                   <Content component="p" className="lw-report__empty">
-                    None of the selected applications have Lightwell
-                    remediations available.
+                    None of the selected SBOMs have Lightwell remediations
+                    available.
                   </Content>
                 ) : (
                   <Table
-                    aria-label="Applications Lightwell can help with"
+                    aria-label="SBOMs Lightwell can help with"
                     variant="compact"
                   >
                     <Thead>
                       <Tr>
-                        <Th width={35}>Application</Th>
+                        <Th width={35}>SBOM</Th>
                         <Th width={30}>Addressable packages</Th>
                         <Th width={35}>Status</Th>
                       </Tr>
@@ -274,7 +364,7 @@ export const LightwellRemediationReportPage: React.FC = () => {
                     <Tbody>
                       {report.applications.map((application) => (
                         <Tr key={application.id}>
-                          <Td dataLabel="Application" width={35}>
+                          <Td dataLabel="SBOM" width={35}>
                             {application.name}
                           </Td>
                           <Td dataLabel="Addressable packages" width={30}>
@@ -303,10 +393,13 @@ export const LightwellRemediationReportPage: React.FC = () => {
                 {report.packages.length === 0 ? (
                   <Content component="p" className="lw-report__empty">
                     No Lightwell-addressable packages were found in the selected
-                    applications.
+                    SBOMs.
                   </Content>
                 ) : (
-                  <Table aria-label="Packages Lightwell can help with" variant="compact">
+                  <Table
+                    aria-label="Packages Lightwell can help with"
+                    variant="compact"
+                  >
                     <Thead>
                       <Tr>
                         <Th>Package</Th>
@@ -349,33 +442,42 @@ export const LightwellRemediationReportPage: React.FC = () => {
         isOpen={blocker.state === "blocked"}
         onClose={() => blocker.state === "blocked" && blocker.reset()}
       >
-        <ModalHeader title="Leave Lightwell remediation report?" />
+        <ModalHeader
+          title={
+            isGenerating
+              ? "Leave while report is generating?"
+              : "Leave Lightwell remediation report?"
+          }
+        />
         <ModalBody>
-          This report is not saved and will be unavailable after leaving this
-          page. To save the report, download it.
+          {isGenerating
+            ? "The report is still generating. If you leave now, generation will stop and you will need to start again from the SBOMs page."
+            : "This report is not saved and will be unavailable after leaving this page. To save the report, download it."}
         </ModalBody>
         <ModalFooter>
+          {report ? (
+            <Button
+              variant="primary"
+              icon={<DownloadIcon />}
+              onClick={() => {
+                handleDownloadCsv();
+                if (blocker.state === "blocked") {
+                  blocker.proceed();
+                }
+              }}
+            >
+              Download and leave
+            </Button>
+          ) : null}
           <Button
-            variant="primary"
-            icon={<DownloadIcon />}
+            variant={report ? "secondary" : "primary"}
             onClick={() => {
-              handleDownloadCsv();
               if (blocker.state === "blocked") {
                 blocker.proceed();
               }
             }}
           >
-            Download and leave
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              if (blocker.state === "blocked") {
-                blocker.proceed();
-              }
-            }}
-          >
-            Leave without downloading
+            {report ? "Leave without downloading" : "Leave"}
           </Button>
           <Button
             variant="link"

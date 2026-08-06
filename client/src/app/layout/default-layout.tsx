@@ -10,6 +10,10 @@ import {
 import InfoCircleIcon from "@patternfly/react-icons/dist/esm/icons/info-circle-icon";
 
 import { Notifications } from "@app/components/Notifications";
+import {
+  NotificationDrawerPanel,
+  NotificationsContext,
+} from "@app/components/NotificationsContext";
 import { PageContentWithDrawerProvider } from "@app/components/PageDrawerContext";
 import { ReadOnlyContext } from "@app/components/ReadOnlyContext";
 import { TpaAgentLauncher, TpaAgentProvider } from "@app/components/tpa-agent";
@@ -31,6 +35,7 @@ interface DefaultLayoutProps {
 
 export const DefaultLayout: React.FC<DefaultLayoutProps> = ({ children }) => {
   const { areMutationsDisabled } = React.useContext(ReadOnlyContext);
+  const { isDrawerExpanded } = React.useContext(NotificationsContext);
   const pageId = "main-content-page-layout-horizontal-nav";
   const PageSkipToContent = (
     <SkipToContent href={`#${pageId}`}>Skip to content</SkipToContent>
@@ -45,6 +50,8 @@ export const DefaultLayout: React.FC<DefaultLayoutProps> = ({ children }) => {
       isManagedSidebar
       skipToContent={PageSkipToContent}
       mainContainerId={pageId}
+      notificationDrawer={<NotificationDrawerPanel />}
+      isNotificationDrawerExpanded={isDrawerExpanded}
     >
       {areMutationsDisabled ? (
         <Banner

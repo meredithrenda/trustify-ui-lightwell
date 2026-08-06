@@ -7,27 +7,27 @@ export const convertLightwellRemediationReportToCSV = (
 ): string => {
   const lines: string[] = [
     "Summary",
-    "selected_applications,addressable_applications,addressable_packages",
+    "selected_sboms,addressable_sboms,addressable_packages",
     [
       report.selectedApplicationCount,
       report.addressableApplicationCount,
       report.addressablePackageCount,
     ].join(","),
     "",
-    "Applications Lightwell can help with",
-    "application_name,addressable_package_count",
+    "SBOMs Lightwell can help with",
+    "sbom_name,addressable_package_count",
     ...report.applications.map(
       (application) =>
         `"${application.name.replace(/"/g, '""')}",${application.addressablePackageCount}`,
     ),
     "",
     "Packages Lightwell can help with",
-    "package_name,version,applications",
+    "package_name,version,sboms",
     ...report.packages.map((pkg) => {
       const name = pkg.packageName.replace(/"/g, '""');
       const version = (pkg.version ?? "").replace(/"/g, '""');
-      const apps = pkg.applicationNames.join("; ").replace(/"/g, '""');
-      return `"${name}","${version}","${apps}"`;
+      const sboms = pkg.applicationNames.join("; ").replace(/"/g, '""');
+      return `"${name}","${version}","${sboms}"`;
     }),
   ];
 
