@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -22,23 +22,13 @@ jobs:
       BASE_PATH: /${{ github.event.repository.name }}/
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-
       - run: npm ci
-
       - run: npm run build -w common
-
       - run: npm run build -w client
-
-      - name: Prepare Pages files
-        run: |
-          cp client/dist/index.html client/dist/404.html
-          touch client/dist/.nojekyll
-
       - uses: actions/upload-pages-artifact@v3
         with:
           path: client/dist
