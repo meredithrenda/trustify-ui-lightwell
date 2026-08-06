@@ -1,0 +1,22 @@
+{
+  "application": {
+    "title": "Trusted Profile Analyzer",
+    "name": "Trusted Profile Analyzer",
+    "description": "Trusted Profile Analyzer (TPA)"
+  },
+  "about": {
+    "displayName": "Trusted Profile Analyzer",
+    "imageSrc": "<%= brandingRoot %>/images/masthead-logo.svg",
+    "documentationUrl": "https://www.redhat.com/"
+  },
+  "masthead": {
+    "leftBrand": {
+      "src": "<%= brandingRoot %>/images/masthead-logo.svg",
+      "alt": "Red Hat Trusted Profile Analyzer",
+      "height": "48px"
+    },
+    "leftTitle": null,
+    "rightBrand": null,
+    "supportUrl": "https://access.redhat.com/support"
+  }
+}
