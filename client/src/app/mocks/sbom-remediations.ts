@@ -222,7 +222,7 @@ export const flattenRemediationPackages = (
 
 export const formatRemediationCountLabel = (count: number): string => {
   if (count === 0) {
-    return "None";
+    return "0 Remediations";
   }
   return `${count} Remediation${count === 1 ? "" : "s"}`;
 };
