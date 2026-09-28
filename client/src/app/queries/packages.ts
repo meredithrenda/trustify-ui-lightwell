@@ -2,20 +2,118 @@ import { useQuery } from "@tanstack/react-query";
 import type { AxiosError } from "axios";
 
 import type { HubRequestParams } from "@app/api/models";
-
-import { client } from "../axios-config/apiInit";
-import { getPurl, listPackages, listPurl } from "../client";
-import { requestParamsQuery } from "../hooks/table-controls";
+import type { PurlAdvisory, PurlDetails } from "@app/client";
 import {
   getMockSbomPackages,
   getMockSbomPackagesByNames,
   mockPackageUuidsWithVulnerabilities,
   mockPackages,
+  packageNameFromPurl,
 } from "@app/mocks/packages";
+import { mockCveFixtures } from "@app/mocks/sbom-advisories";
+import {
+  getMockRemediationCveIdsForPackage,
+  getMockRemediationVersionsForPackageCve,
+} from "@app/mocks/sbom-remediations";
+
+import { client } from "../axios-config/apiInit";
+import { getPurl, listPackages, listPurl } from "../client";
+import { requestParamsQuery } from "../hooks/table-controls";
 
 declare const __MOCK_DATA__: boolean;
 
 export const PackagesQueryKey = "packages";
+
+const getMockPackageDetails = (id: string): PurlDetails => {
+  const summary =
+    mockPackages.find((pkg) => pkg.uuid === id) ?? mockPackages[0];
+  const packageName = packageNameFromPurl(summary.purl);
+  const cveIds = getMockRemediationCveIdsForPackage(summary.uuid, packageName);
+
+  const advisories: PurlAdvisory[] = cveIds.flatMap((cveId) => {
+    const cve = mockCveFixtures.find((fixture) => fixture.identifier === cveId);
+    const remediations = getMockRemediationVersionsForPackageCve(
+      summary.uuid,
+      cveId,
+      packageName,
+    );
+    const fixedVersion = remediations[0]?.version;
+
+    const severity = cve?.severity ?? "medium";
+    const score = cve?.score ?? 5.0;
+    const title =
+      cve?.title ??
+      `${packageName}: Lightwell remediation available${
+        fixedVersion ? ` (${fixedVersion})` : ""
+      }`;
+    const description =
+      cve?.description ??
+      `Prototype vulnerability for ${packageName} with Lightwell remediations.`;
+    const rhsa = cve?.rhsa ?? `RHLW-${cveId}`;
+    const published = cve?.published ?? "2024-01-01T00:00:00Z";
+    const modified = cve?.modified ?? published;
+
+    const advisoryHead = {
+      uuid: `adv-pkg-${summary.uuid}-${rhsa}`,
+      document_id: rhsa,
+      identifier: rhsa,
+      title: cve?.rhTitle ?? `Lightwell remediation for ${cveId}`,
+      published: cve?.rhPublished ?? published,
+      modified,
+      labels: { type: "csaf", severity },
+      issuer: null,
+      withdrawn: null,
+    };
+
+    return [
+      {
+        ...advisoryHead,
+        status: [
+          {
+            advisory: advisoryHead,
+            context: null,
+            scores: [
+              {
+                type: "3.1" as const,
+                value: score,
+                severity,
+              },
+            ],
+            status: "affected",
+            vulnerability: {
+              identifier: cveId,
+              title,
+              description,
+              cwes: cve?.cwes ?? [],
+              discovered: cve?.discovered ?? published,
+              modified,
+              published,
+              reserved: cve?.reserved ?? published,
+              released: null,
+              withdrawn: null,
+              normative: true,
+              base_score: {
+                score,
+                severity,
+                type: "3.1" as const,
+              },
+            },
+          },
+        ],
+      },
+    ];
+  });
+
+  return {
+    uuid: summary.uuid,
+    purl: summary.purl,
+    base: summary.base,
+    version: summary.version,
+    licenses: [],
+    licenses_ref_mapping: [],
+    advisories,
+  };
+};
 
 export type UseFetchPackagesOptions = {
   disableQuery?: boolean;
@@ -89,8 +187,7 @@ export const packageByIdQueryOptions = (id: string) => ({
   queryKey: [PackagesQueryKey, id],
   queryFn: () => {
     if (__MOCK_DATA__) {
-      const found = mockPackages.find((p) => p.uuid === id);
-      return Promise.resolve({ data: found ?? mockPackages[0] });
+      return Promise.resolve({ data: getMockPackageDetails(id) });
     }
     return getPurl({ client, path: { key: id } });
   },

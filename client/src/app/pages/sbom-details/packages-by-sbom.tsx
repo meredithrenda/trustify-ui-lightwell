@@ -21,7 +21,6 @@ import {
 
 import type { LicenseRefMapping } from "@app/client";
 import { FilterToolbar, FilterType } from "@app/components/FilterToolbar";
-import { PackageRecommendationsExpand } from "@app/components/PackageRecommendationsExpand";
 import { SimplePagination } from "@app/components/SimplePagination";
 import {
   ConditionalTableBody,
@@ -36,25 +35,18 @@ import {
   useTableControlProps,
   useTableControlState,
 } from "@app/hooks/table-controls";
-import { getMockPackageRecommendations } from "@app/mocks/package-recommendations";
 import {
   mockPackages,
   packageNameFromPurl,
 } from "@app/mocks/packages";
-import {
-  formatRecommendationCountLabel,
-  packageMatchesLightwellRemediationFilter,
-} from "@app/mocks/sbom-remediations";
 import { useFetchPackagesBySbomId } from "@app/queries/packages";
 import { useFetchSbomsLicenseIds } from "@app/queries/sboms";
 import { Paths } from "@app/Routes";
 
 import { PackageVulnerabilities } from "../package-list/components/PackageVulnerabilities";
-import { RemediationVersionCell } from "../package-list/components/RemediationVersionCell";
+import { PackageRemediationCountCell } from "../package-list/components/PackageRemediationCountCell";
 
 import { SBOM_PACKAGES_TABLE_PREFIX } from "./helpers";
-
-declare const __MOCK_DATA__: boolean;
 
 const packageNameOptions = [
   ...new Map(
@@ -90,8 +82,7 @@ export const PackagesBySbom: React.FC<PackagesProps> = ({ sbomId }) => {
       version: "Version",
       vulnerabilities: "Vulnerabilities",
       licenses: "Licenses",
-      recommendations: "Red Hat recommendations",
-      remediations: "Lightwell remediations",
+      remediations: "Remediations",
       purls: "PURLs",
       cpes: "CPEs",
     },
@@ -126,25 +117,10 @@ export const PackagesBySbom: React.FC<PackagesProps> = ({ sbomId }) => {
           label: license.license_name.toUpperCase(),
         })),
       },
-      {
-        categoryKey: "lightwellRemediation",
-        title: "Lightwell remediations",
-        placeholderText: "Filter by Lightwell remediation",
-        type: FilterType.multiselect,
-        logicOperator: "OR",
-        excludeFromHubRequest: true,
-        selectOptions: [
-          { value: "backport", label: "Backport" },
-          { value: "upgrade", label: "Version upgrade" },
-        ],
-      },
     ],
     isExpansionEnabled: true,
     expandableVariant: "compound",
   });
-
-  const lightwellRemediationFilters =
-    tableControlState.filterState.filterValues.lightwellRemediation ?? [];
 
   const {
     result: { data: packages, total: totalItemCount },
@@ -160,31 +136,11 @@ export const PackagesBySbom: React.FC<PackagesProps> = ({ sbomId }) => {
     total: true,
   });
 
-  const filteredPackages = React.useMemo(() => {
-    if (!__MOCK_DATA__ || lightwellRemediationFilters.length === 0) {
-      return packages;
-    }
-
-    return packages.filter((item) => {
-      const packageId = item.purl[0]?.uuid ?? item.id;
-      return packageMatchesLightwellRemediationFilter(
-        packageId,
-        item.name,
-        lightwellRemediationFilters,
-      );
-    });
-  }, [packages, lightwellRemediationFilters]);
-
-  const filteredTotalItemCount =
-    __MOCK_DATA__ && lightwellRemediationFilters.length > 0
-      ? filteredPackages.length
-      : totalItemCount;
-
   const tableControls = useTableControlProps({
     ...tableControlState,
     idProperty: "id",
-    currentPageItems: filteredPackages,
-    totalItemCount: filteredTotalItemCount,
+    currentPageItems: packages,
+    totalItemCount,
     isLoading: isFetching,
   });
 
@@ -233,14 +189,10 @@ export const PackagesBySbom: React.FC<PackagesProps> = ({ sbomId }) => {
               />
               <Th
                 modifier="fitContent"
-                {...getThProps({ columnKey: "recommendations" })}
-              />
-              <Th
-                modifier="fitContent"
                 {...getThProps({ columnKey: "remediations" })}
                 info={{
                   tooltip:
-                    "Fixed package versions from Lightwell. Blue pills with a .rhlw- suffix are Lightwell backports (same version stream). Green pills are version upgrades.",
+                    "Number of remediations available for this package. Open the package and use the Vulnerabilities tab to see remediations per CVE.",
                 }}
               />
               <Th {...getThProps({ columnKey: "purls" })} />
@@ -259,9 +211,6 @@ export const PackagesBySbom: React.FC<PackagesProps> = ({ sbomId }) => {
         >
           {currentPageItems?.map((item, rowIndex) => {
             const packageId = item.purl[0]?.uuid ?? item.id;
-            const recommendations = __MOCK_DATA__
-              ? getMockPackageRecommendations(packageId, item.name)
-              : [];
 
             return (
               <Tbody key={item.id} isExpanded={isCellExpanded(item)}>
@@ -323,23 +272,9 @@ export const PackagesBySbom: React.FC<PackagesProps> = ({ sbomId }) => {
                     </Td>
                     <Td
                       modifier="nowrap"
-                      {...getTdProps({
-                        columnKey: "recommendations",
-                        isCompoundExpandToggle: recommendations.length > 0,
-                        item,
-                        rowIndex,
-                      })}
-                    >
-                      {formatRecommendationCountLabel(recommendations.length)}
-                    </Td>
-                    <Td
-                      width={20}
                       {...getTdProps({ columnKey: "remediations" })}
                     >
-                      <RemediationVersionCell
-                        packageId={packageId}
-                        packageName={item.name}
-                      />
+                      <PackageRemediationCountCell packageId={packageId} />
                     </Td>
                     <Td
                       width={20}
@@ -400,11 +335,6 @@ export const PackagesBySbom: React.FC<PackagesProps> = ({ sbomId }) => {
                                 </ListItem>
                               ))}
                             </List>
-                          ) : null}
-                          {isCellExpanded(item, "recommendations") ? (
-                            <PackageRecommendationsExpand
-                              recommendations={recommendations}
-                            />
                           ) : null}
                           {isCellExpanded(item, "purls") ? (
                             <List isPlain>

@@ -8,7 +8,8 @@ import type {
   VulnerabilitySbomStatus,
 } from "@app/client";
 
-import { mockPackages } from "./packages";
+import { mockPackages, packageNameFromPurl } from "./packages";
+import { getMockRemediationPackagesForCve } from "./sbom-remediations";
 import { mockSboms } from "./sboms";
 
 type CveFixture = {
@@ -311,13 +312,44 @@ export const getMockSbomAdvisories = (sbomId: string): SbomAdvisory[] => {
     ) {
       return exploitPrototypeCveIdentifiers.map((id, row) => {
         const cve = mockCveFixtures.find((f) => f.identifier === id);
-        const p = exploitPrototypePkgs[row];
-        if (!cve || !p) {
+        const fallbackPkg = exploitPrototypePkgs[row];
+        if (!cve || !fallbackPkg) {
           throw new Error(
             `[mock sbom advisory] Missing CVE or package for exploit intelligence prototype (${id}).`,
           );
         }
-        return mkSbomAdvisory(cve, p, [mkSbomStatus(cve, p, "affected")]);
+
+        // Affected packages must match remediation mock data for this CVE so
+        // the Vulnerabilities expand Remediations column stays accurate.
+        const remediationPkgs = getMockRemediationPackagesForCve(id).filter(
+          (remPkg) =>
+            remPkg.remediations.some((item) => item.kind === "remediation"),
+        );
+        const matchedPurls = remediationPkgs
+          .map((remPkg) =>
+            mockPackages.find((candidate) => candidate.uuid === remPkg.packageId),
+          )
+          .filter((candidate): candidate is (typeof mockPackages)[number] =>
+            Boolean(candidate),
+          );
+
+        const statusPkg: SbomPackage =
+          matchedPurls.length > 0
+            ? {
+                ...pkg,
+                name:
+                  matchedPurls.length === 1
+                    ? packageNameFromPurl(matchedPurls[0].purl)
+                    : matchedPurls
+                        .map((matched) => packageNameFromPurl(matched.purl))
+                        .join(" / "),
+                purl: matchedPurls,
+              }
+            : fallbackPkg;
+
+        return mkSbomAdvisory(cve, statusPkg, [
+          mkSbomStatus(cve, statusPkg, "affected"),
+        ]);
       });
     }
   }

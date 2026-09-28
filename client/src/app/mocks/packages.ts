@@ -6,6 +6,9 @@ export const mockPackageUuidsWithVulnerabilities = new Set<string>([
   "pkg-003",
   "pkg-004",
   "pkg-007",
+  "pkg-008",
+  "pkg-011",
+  "pkg-012",
 ]);
 
 const MOCK_LICENSE_IDS: LicenseRefMapping[] = [

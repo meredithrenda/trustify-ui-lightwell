@@ -1,9 +1,11 @@
 /**
  * Prototype Lightwell remediations.
  *
- * Source of truth is package-scoped. Package tables show fixed-version
- * pills (`.rhlw-` = backport; other versions = upgrades). SBOM vulnerability
- * lists show counts that deep-link to the Packages tab.
+ * Accurate attribution is 1 package × 1 CVE:
+ * - Package / SBOM package lists show remediation **counts** only
+ * - Package details → Vulnerabilities shows version remediations per CVE
+ * - SBOM Vulnerabilities shows a count on the CVE row; expand Affected
+ *   dependencies to see remediations per package for that CVE
  */
 
 export type LightwellRemediationKind = "remediation" | "recommendation";
@@ -114,6 +116,57 @@ export const getMockRemediationVersionsForPackage = (
     return MOCK_REMEDIATION_VERSIONS_BY_PACKAGE[packageName];
   }
   return [];
+};
+
+/**
+ * Remediations for one package under one CVE (accurate 1×1 context).
+ * Prefer this over package-level version lists on list pages.
+ */
+export const getMockRemediationVersionsForPackageCve = (
+  packageId: string,
+  vulnerabilityId: string,
+  packageName?: string,
+): RemediationVersionOption[] => {
+  const packagesForCve =
+    MOCK_REMEDIATION_PACKAGES_BY_CVE[vulnerabilityId] ?? [];
+
+  const matchingPackage = packagesForCve.find(
+    (pkg) =>
+      pkg.packageId === packageId ||
+      (!!packageName && pkg.packageName === packageName),
+  );
+
+  if (!matchingPackage) {
+    return [];
+  }
+
+  return matchingPackage.remediations
+    .filter((item) => item.kind === "remediation" && item.fixedInVersion)
+    .map((item) => ({ version: item.fixedInVersion! }));
+};
+
+/** CVE identifiers that have Lightwell remediations for this package. */
+export const getMockRemediationCveIdsForPackage = (
+  packageId: string,
+  packageName?: string,
+): string[] => {
+  const cveIds: string[] = [];
+
+  for (const [cveId, packages] of Object.entries(
+    MOCK_REMEDIATION_PACKAGES_BY_CVE,
+  )) {
+    const hasRemediation = packages.some(
+      (pkg) =>
+        (pkg.packageId === packageId ||
+          (!!packageName && pkg.packageName === packageName)) &&
+        pkg.remediations.some((item) => item.kind === "remediation"),
+    );
+    if (hasRemediation) {
+      cveIds.push(cveId);
+    }
+  }
+
+  return cveIds;
 };
 
 /** Fix shapes present for a package based on remediation version pills. */

@@ -14,7 +14,6 @@ import {
 } from "@patternfly/react-table";
 
 import { PackageQualifiers } from "@app/components/PackageQualifiers";
-import { PackageRecommendationsExpand } from "@app/components/PackageRecommendationsExpand";
 import { SimplePagination } from "@app/components/SimplePagination";
 import {
   ConditionalTableBody,
@@ -22,16 +21,12 @@ import {
   TableRowContentWithControls,
 } from "@app/components/TableControls";
 import { WithPackage } from "@app/components/WithPackage";
-import { getMockPackageRecommendations } from "@app/mocks/package-recommendations";
 import { Paths } from "@app/Routes";
 
 import { PackageLicenses } from "./components/PackageLicences";
-import { PackageRecommendationCountCell } from "./components/PackageRecommendationCountCell";
+import { PackageRemediationCountCell } from "./components/PackageRemediationCountCell";
 import { PackageVulnerabilities } from "./components/PackageVulnerabilities";
-import { RemediationVersionCell } from "./components/RemediationVersionCell";
 import { PackageSearchContext } from "./package-context";
-
-declare const __MOCK_DATA__: boolean;
 
 export const PackageTable: React.FC = () => {
   const { isFetching, fetchError, tableControls } =
@@ -70,14 +65,10 @@ export const PackageTable: React.FC = () => {
               />
               <Th
                 modifier="fitContent"
-                {...getThProps({ columnKey: "recommendations" })}
-              />
-              <Th
-                modifier="fitContent"
                 {...getThProps({ columnKey: "remediations" })}
                 info={{
                   tooltip:
-                    "Fixed package versions from Lightwell. Blue pills with a .rhlw- suffix are Lightwell backports (same version stream). Green pills are version upgrades.",
+                    "Number of remediations available for this package. Open the package and use the Vulnerabilities tab to see remediations per CVE.",
                 }}
               />
               <Th
@@ -99,11 +90,6 @@ export const PackageTable: React.FC = () => {
           numRenderedColumns={numRenderedColumns}
         >
           {currentPageItems.map((item, rowIndex) => {
-            const packageName = item.decomposedPurl?.name;
-            const recommendations = __MOCK_DATA__
-              ? getMockPackageRecommendations(item.uuid, packageName)
-              : [];
-
             return (
               <WithPackage key={item.uuid} packageId={item.uuid}>
                 {(pkg, packageIsFetching, packageFetchError) => (
@@ -168,26 +154,9 @@ export const PackageTable: React.FC = () => {
                         </Td>
                         <Td
                           modifier="nowrap"
-                          {...getTdProps({
-                            columnKey: "recommendations",
-                            isCompoundExpandToggle: recommendations.length > 0,
-                            item,
-                            rowIndex,
-                          })}
-                        >
-                          <PackageRecommendationCountCell
-                            packageId={item.uuid}
-                            packageName={packageName}
-                          />
-                        </Td>
-                        <Td
-                          width={20}
                           {...getTdProps({ columnKey: "remediations" })}
                         >
-                          <RemediationVersionCell
-                            packageId={item.uuid}
-                            packageName={packageName}
-                          />
+                          <PackageRemediationCountCell packageId={item.uuid} />
                         </Td>
                         <Td
                           width={10}
@@ -238,11 +207,6 @@ export const PackageTable: React.FC = () => {
                                     </ListItem>
                                   ))}
                                 </List>
-                              ) : null}
-                              {isCellExpanded(item, "recommendations") ? (
-                                <PackageRecommendationsExpand
-                                  recommendations={recommendations}
-                                />
                               ) : null}
                             </div>
                           </ExpandableRowContent>

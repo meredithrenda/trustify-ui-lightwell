@@ -18,18 +18,12 @@ export interface IPackageSearchContext {
     | "version"
     | "type"
     | "licenses"
-    | "recommendations"
     | "remediations"
     | "path"
     | "qualifiers"
     | "vulnerabilities",
     "name" | "namespace" | "version",
-    | ""
-    | "type"
-    | "arch"
-    | "license"
-    | "has_vulnerabilities"
-    | "lightwellRemediation",
+    "" | "type" | "arch" | "license" | "has_vulnerabilities",
     string
   >;
 

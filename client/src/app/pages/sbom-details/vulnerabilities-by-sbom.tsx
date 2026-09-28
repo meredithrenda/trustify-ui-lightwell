@@ -53,7 +53,6 @@ import {
   ExploitIntelligenceAnalysisCell,
   formatExploitIntelligenceRequestError,
 } from "@app/components/exploit-intelligence";
-import { FilterToolbar, FilterType } from "@app/components/FilterToolbar";
 import { PackageQualifiers } from "@app/components/PackageQualifiers";
 import { SbomVulnerabilitiesDonutChart } from "@app/components/SbomVulnerabilitiesDonutChart";
 import { SeverityShieldAndText } from "@app/components/SeverityShieldAndText";
@@ -82,6 +81,7 @@ import { Paths } from "@app/Routes";
 import { useWithUiId } from "@app/utils/query-utils";
 import { decomposePurl, formatDate } from "@app/utils/utils";
 
+import { AffectedDependencyRemediationCell } from "./components/AffectedDependencyRemediationCell";
 import { RemediationCountCell } from "./components/RemediationCountCell";
 
 declare const __MOCK_DATA__: boolean;
@@ -197,7 +197,7 @@ interface TableData {
   };
   /** When the API returns exploit-intelligence state for this row, it is passed through here */
   exploitIntelligence?: ExploitIntelligenceCellState;
-  /** Packages that carry remediations for this CVE (details live on package pages). */
+  /** Packages that carry remediations for this CVE (shown per package in Affected dependencies expand). */
   remediationPackages: LightwellRemediationPackage[];
 }
 
@@ -312,7 +312,7 @@ export const VulnerabilitiesBySbom: React.FC<VulnerabilitiesBySbomProps> = ({
       id: "Id",
       description: "Description",
       cvss: "CVSS",
-      remediations: "Lightwell remediations",
+      remediations: "Remediations",
       exploitIntelligence: "Exploit Intelligence Analysis",
       affectedDependencies: "Affected dependencies",
       updated: "Updated",
@@ -337,29 +337,7 @@ export const VulnerabilitiesBySbom: React.FC<VulnerabilitiesBySbomProps> = ({
         : 0,
     }),
     isPaginationEnabled: true,
-    isFilterEnabled: true,
-    filterCategories: [
-      {
-        categoryKey: "hasRemediation",
-        title: "Lightwell remediations",
-        placeholderText: "Filter by Lightwell remediation",
-        type: FilterType.multiselect,
-        logicOperator: "OR",
-        selectOptions: [
-          { value: "backport", label: "Backport" },
-          { value: "upgrade", label: "Version upgrade" },
-        ],
-        matcher: (filter, item) => {
-          const fixShapes = item.remediationPackages.flatMap((pkg) =>
-            pkg.remediations.flatMap((remediation) =>
-              remediation.fixShape ? [remediation.fixShape] : [],
-            ),
-          );
-
-          return fixShapes.includes(filter as "backport" | "upgrade");
-        },
-      },
-    ],
+    isFilterEnabled: false,
     isExpansionEnabled: true,
     expandableVariant: "compound",
   });
@@ -369,7 +347,6 @@ export const VulnerabilitiesBySbom: React.FC<VulnerabilitiesBySbomProps> = ({
     numRenderedColumns,
     propHelpers: {
       toolbarProps,
-      filterToolbarProps,
       paginationToolbarItemProps,
       paginationProps,
       tableProps,
@@ -453,7 +430,6 @@ export const VulnerabilitiesBySbom: React.FC<VulnerabilitiesBySbomProps> = ({
         ) : null}
         <Toolbar {...toolbarProps}>
           <ToolbarContent>
-            <FilterToolbar {...filterToolbarProps} />
             <ToolbarItem {...paginationToolbarItemProps}>
               <SimplePagination
                 idPrefix="vulnerability-table"
@@ -479,7 +455,7 @@ export const VulnerabilitiesBySbom: React.FC<VulnerabilitiesBySbomProps> = ({
                   {...getThProps({ columnKey: "remediations" })}
                   info={{
                     tooltip:
-                      "Lightwell remediations available for packages affected by this vulnerability. Opens the Packages tab filtered to those packages.",
+                      "Count of remediations for packages affected by this vulnerability. Expand Affected dependencies to see remediations per package for this CVE.",
                   }}
                 />
                 <Th
@@ -574,7 +550,6 @@ export const VulnerabilitiesBySbom: React.FC<VulnerabilitiesBySbomProps> = ({
                         {...getTdProps({ columnKey: "remediations" })}
                       >
                         <RemediationCountCell
-                          sbomId={sbomId}
                           packages={item.remediationPackages}
                         />
                       </Td>
@@ -665,6 +640,7 @@ export const VulnerabilitiesBySbom: React.FC<VulnerabilitiesBySbomProps> = ({
                                   <Th>Namespace</Th>
                                   <Th>Name</Th>
                                   <Th>Version</Th>
+                                  <Th>Remediations</Th>
                                   <Th>Path</Th>
                                   <Th>Qualifiers</Th>
                                 </Tr>
@@ -694,6 +670,15 @@ export const VulnerabilitiesBySbom: React.FC<VulnerabilitiesBySbomProps> = ({
                                             </Link>
                                           </Td>
                                           <Td>{decomposedPurl?.version}</Td>
+                                          <Td>
+                                            <AffectedDependencyRemediationCell
+                                              remediationPackages={
+                                                item.remediationPackages
+                                              }
+                                              packageId={purl.purlSummary.uuid}
+                                              packageName={decomposedPurl?.name}
+                                            />
+                                          </Td>
                                           <Td>{decomposedPurl?.path}</Td>
                                           <Td>
                                             {decomposedPurl?.qualifiers && (
@@ -716,6 +701,14 @@ export const VulnerabilitiesBySbom: React.FC<VulnerabilitiesBySbomProps> = ({
                                         <Td />
                                         <Td>{purl.parentName}</Td>
                                         <Td />
+                                        <Td>
+                                          <AffectedDependencyRemediationCell
+                                            remediationPackages={
+                                              item.remediationPackages
+                                            }
+                                            packageName={purl.parentName}
+                                          />
+                                        </Td>
                                         <Td />
                                         <Td />
                                       </Tr>

@@ -26,9 +26,13 @@ import { TdWithFocusStatus } from "@app/components/TdWithFocusStatus";
 import { VulnerabilityDescription } from "@app/components/VulnerabilityDescription";
 import { useVulnerabilitiesOfPackageId } from "@app/hooks/domain-controls/useVulnerabilitiesOfPackage";
 import { useLocalTableControls } from "@app/hooks/table-controls";
+import { packageNameFromPurl } from "@app/mocks/packages";
+import { useFetchPackageById } from "@app/queries/packages";
 import { Paths } from "@app/Routes";
 import { useWithUiId } from "@app/utils/query-utils";
 import { formatDate } from "@app/utils/utils";
+
+import { PackageCveRemediationCell } from "../package-list/components/PackageCveRemediationCell";
 
 interface VulnerabilitiesByPackageProps {
   packageId: string;
@@ -37,6 +41,9 @@ interface VulnerabilitiesByPackageProps {
 export const VulnerabilitiesByPackage: React.FC<
   VulnerabilitiesByPackageProps
 > = ({ packageId }) => {
+  const { pkg } = useFetchPackageById(packageId);
+  const packageName = pkg?.purl ? packageNameFromPurl(pkg.purl) : undefined;
+
   const {
     data: { vulnerabilities },
     isFetching: isFetchingVulnerabilities,
@@ -63,6 +70,7 @@ export const VulnerabilitiesByPackage: React.FC<
       identifier: "ID",
       description: "Description",
       severity: "CVSS",
+      remediations: "Remediations",
       published: "Date published",
     },
     hasActionsColumn: false,
@@ -119,6 +127,14 @@ export const VulnerabilitiesByPackage: React.FC<
               <Th {...getThProps({ columnKey: "identifier" })} />
               <Th {...getThProps({ columnKey: "description" })} />
               <Th {...getThProps({ columnKey: "severity" })} />
+              <Th
+                modifier="fitContent"
+                {...getThProps({ columnKey: "remediations" })}
+                info={{
+                  tooltip:
+                    "Remediations that apply to this package for this vulnerability.",
+                }}
+              />
               <Th {...getThProps({ columnKey: "published" })} />
             </TableHeaderContentWithControls>
           </Tr>
@@ -154,7 +170,7 @@ export const VulnerabilitiesByPackage: React.FC<
                     <TdWithFocusStatus>
                       {(isFocused, setIsFocused) => (
                         <Td
-                          width={60}
+                          width={45}
                           modifier="truncate"
                           onFocus={() => setIsFocused(true)}
                           onBlur={() => setIsFocused(false)}
@@ -185,6 +201,16 @@ export const VulnerabilitiesByPackage: React.FC<
                           showScore
                         />
                       )}
+                    </Td>
+                    <Td
+                      modifier="nowrap"
+                      {...getTdProps({ columnKey: "remediations" })}
+                    >
+                      <PackageCveRemediationCell
+                        packageId={packageId}
+                        packageName={packageName}
+                        vulnerabilityId={item.vulnerability.identifier}
+                      />
                     </Td>
                     <Td
                       width={10}
