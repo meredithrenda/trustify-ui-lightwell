@@ -15,19 +15,25 @@ export const convertLightwellRemediationReportToCSV = (
     ].join(","),
     "",
     "SBOMs Lightwell can help with",
-    "sbom_name,addressable_package_count",
+    "sbom_name,addressable_package_count,vulnerabilities",
     ...report.applications.map(
       (application) =>
-        `"${application.name.replace(/"/g, '""')}",${application.addressablePackageCount}`,
+        `"${application.name.replace(/"/g, '""')}",${application.addressablePackageCount},${application.vulnerabilityCount}`,
     ),
     "",
     "Packages Lightwell can help with",
-    "package_name,version,sboms",
+    "package_name,version,recommended_versions,vulnerabilities_addressed,sboms",
     ...report.packages.map((pkg) => {
       const name = pkg.packageName.replace(/"/g, '""');
       const version = (pkg.version ?? "").replace(/"/g, '""');
+      const recommended = pkg.recommendedVersions
+        .join("; ")
+        .replace(/"/g, '""');
+      const vulnerabilities = pkg.vulnerabilityIds
+        .join("; ")
+        .replace(/"/g, '""');
       const sboms = pkg.applicationNames.join("; ").replace(/"/g, '""');
-      return `"${name}","${version}","${sboms}"`;
+      return `"${name}","${version}","${recommended}","${vulnerabilities}","${sboms}"`;
     }),
   ];
 

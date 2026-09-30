@@ -359,6 +359,61 @@ export const MOCK_REMEDIATION_PACKAGES_BY_CVE: Record<
       ],
     },
   ],
+  // openssl: 3+ CVEs addressed (report “Vulnerabilities addressed” dense case)
+  "CVE-2024-5535": [
+    {
+      packageId: "pkg-001",
+      packageName: "openssl",
+      remediations: [
+        {
+          id: "rem-2024-5535-1",
+          kind: "remediation",
+          fixShape: "backport",
+          fixedInVersion: "3.0.7-27.el9.rhlw-00001",
+          vulnerabilityId: "CVE-2024-5535",
+          details:
+            "Lightwell backport covering the SSL_select_next_proto buffer overread in the 3.0.7 stream.",
+          advisoryId: "RHLW-2024:5535",
+        },
+      ],
+    },
+  ],
+  "CVE-2024-2511": [
+    {
+      packageId: "pkg-001",
+      packageName: "openssl",
+      remediations: [
+        {
+          id: "rem-2024-2511-1",
+          kind: "remediation",
+          fixShape: "backport",
+          fixedInVersion: "3.0.7-27.el9.rhlw-00001",
+          vulnerabilityId: "CVE-2024-2511",
+          details:
+            "Lightwell backport for unconstrained session cache growth in TLSv1.3.",
+          advisoryId: "RHLW-2024:2511",
+        },
+      ],
+    },
+  ],
+  "CVE-2024-4741": [
+    {
+      packageId: "pkg-001",
+      packageName: "openssl",
+      remediations: [
+        {
+          id: "rem-2024-4741-1",
+          kind: "remediation",
+          fixShape: "backport",
+          fixedInVersion: "3.0.7-27.el9.rhlw-00001",
+          vulnerabilityId: "CVE-2024-4741",
+          details:
+            "Lightwell backport for use-after-free with SSL_free_buffers / SSL_send_file.",
+          advisoryId: "RHLW-2024:4741",
+        },
+      ],
+    },
+  ],
   "CVE-2024-6119": [
     {
       packageId: "pkg-001",
@@ -426,6 +481,43 @@ export const MOCK_REMEDIATION_PACKAGES_BY_CVE: Record<
           details:
             "Lightwell backport (2.7.18.rhlw-00004): security fix applied in the 2.7.18 stream without requiring a major upgrade. Other listed versions are upgrades to newer Spring Boot releases.",
           advisoryId: "RHLW-2024:38816",
+        },
+      ],
+    },
+  ],
+  // spring-boot: 3 CVEs addressed, one shared recommended version in the report
+  "CVE-2024-38808": [
+    {
+      packageId: "pkg-012",
+      packageName: "spring-boot",
+      remediations: [
+        {
+          id: "rem-2024-38808-1",
+          kind: "remediation",
+          fixShape: "backport",
+          fixedInVersion: "2.7.18.rhlw-00004",
+          vulnerabilityId: "CVE-2024-38808",
+          details:
+            "Lightwell backport for Spring Framework DoS via SpEL expression input.",
+          advisoryId: "RHLW-2024:38808",
+        },
+      ],
+    },
+  ],
+  "CVE-2024-38809": [
+    {
+      packageId: "pkg-012",
+      packageName: "spring-boot",
+      remediations: [
+        {
+          id: "rem-2024-38809-1",
+          kind: "remediation",
+          fixShape: "backport",
+          fixedInVersion: "2.7.18.rhlw-00004",
+          vulnerabilityId: "CVE-2024-38809",
+          details:
+            "Lightwell backport for Spring Framework CaseInsensitiveComparator DoS.",
+          advisoryId: "RHLW-2024:38809",
         },
       ],
     },

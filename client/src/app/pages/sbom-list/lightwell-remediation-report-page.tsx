@@ -26,6 +26,7 @@ import {
   EmptyStateFooter,
   EmptyStateVariant,
   Label,
+  LabelGroup,
   Modal,
   ModalBody,
   ModalFooter,
@@ -35,6 +36,9 @@ import {
   ProgressMeasureLocation,
   ProgressSize,
   Spinner,
+  Toolbar,
+  ToolbarContent,
+  ToolbarItem,
 } from "@patternfly/react-core";
 import {
   Table,
@@ -47,20 +51,33 @@ import {
 import DownloadIcon from "@patternfly/react-icons/dist/esm/icons/download-icon";
 
 import { DocumentMetadata } from "@app/components/DocumentMetadata";
+import { FilterToolbar, FilterType } from "@app/components/FilterToolbar";
 import { NotificationsContext } from "@app/components/NotificationsContext";
+import { SimplePagination } from "@app/components/SimplePagination";
+import {
+  ConditionalTableBody,
+  TableHeaderContentWithControls,
+  TableRowContentWithControls,
+} from "@app/components/TableControls";
+import { useLocalTableControls } from "@app/hooks/table-controls";
 import { Paths } from "@app/Routes";
 
 import { downloadLightwellRemediationReportCsv } from "./lightwell-remediation-report-download";
 import {
   buildLightwellRemediationReport,
+  getDemoLightwellReportSelection,
   getLightwellReportGenerationDelayMs,
+  readPersistedLightwellReportSelection,
   type LightwellRemediationReport,
   type LightwellRemediationReportLocationState,
+  type LightwellReportPackage,
 } from "./lightwell-remediation-report";
 
 import "./lightwell-remediation-report.css";
 
 export type { LightwellRemediationReportLocationState };
+
+const VISIBLE_LABELS = 3;
 
 const isReportState = (
   state: unknown,
@@ -72,6 +89,228 @@ const isReportState = (
   return Array.isArray(candidate.selectedSboms);
 };
 
+const LightwellReportPackagesTable: React.FC<{
+  packages: LightwellReportPackage[];
+}> = ({ packages }) => {
+  const sbomFilterOptions = React.useMemo(() => {
+    const names = new Set<string>();
+    for (const pkg of packages) {
+      for (const name of pkg.applicationNames) {
+        names.add(name);
+      }
+    }
+    return [...names]
+      .sort((a, b) => a.localeCompare(b))
+      .map((name) => ({ value: name, label: name }));
+  }, [packages]);
+
+  const cveFilterOptions = React.useMemo(() => {
+    const ids = new Set<string>();
+    for (const pkg of packages) {
+      for (const id of pkg.vulnerabilityIds) {
+        ids.add(id);
+      }
+    }
+    return [...ids]
+      .sort((a, b) => a.localeCompare(b))
+      .map((id) => ({ value: id, label: id }));
+  }, [packages]);
+
+  const tableControls = useLocalTableControls({
+    tableName: "lw-report-packages-table",
+    idProperty: "packageId",
+    items: packages,
+    columnNames: {
+      packageName: "Package",
+      version: "Version",
+      recommendedVersion: "Recommended version",
+      vulnerabilitiesAddressed: "Vulnerabilities addressed",
+      foundIn: "Found in",
+    },
+    isFilterEnabled: true,
+    filterCategories: [
+      {
+        categoryKey: "packageName",
+        title: "Package",
+        type: FilterType.search,
+        placeholderText: "Filter by package name",
+        getItemValue: (item) => item.packageName,
+      },
+      {
+        categoryKey: "sbom",
+        title: "SBOM",
+        type: FilterType.multiselect,
+        placeholderText: "Filter by SBOM",
+        selectOptions: sbomFilterOptions,
+        matcher: (filter, item) => item.applicationNames.includes(filter),
+      },
+      {
+        categoryKey: "cve",
+        title: "CVE",
+        type: FilterType.multiselect,
+        placeholderText: "Filter by CVE",
+        selectOptions: cveFilterOptions,
+        matcher: (filter, item) => item.vulnerabilityIds.includes(filter),
+      },
+    ],
+    isSortEnabled: true,
+    sortableColumns: ["packageName", "version"],
+    getSortValues: (item) => ({
+      packageName: item.packageName,
+      version: item.version ?? "",
+    }),
+    isPaginationEnabled: true,
+    initialItemsPerPage: 10,
+  });
+
+  const {
+    currentPageItems,
+    numRenderedColumns,
+    propHelpers: {
+      toolbarProps,
+      paginationToolbarItemProps,
+      paginationProps,
+      tableProps,
+      filterToolbarProps,
+      getThProps,
+      getTrProps,
+      getTdProps,
+    },
+  } = tableControls;
+
+  return (
+    <>
+      <Toolbar {...toolbarProps}>
+        <ToolbarContent>
+          <FilterToolbar {...filterToolbarProps} />
+          <ToolbarItem {...paginationToolbarItemProps}>
+            <SimplePagination
+              idPrefix="lw-report-packages"
+              isTop
+              paginationProps={paginationProps}
+            />
+          </ToolbarItem>
+        </ToolbarContent>
+      </Toolbar>
+      <Table
+        {...tableProps}
+        aria-label="Packages Lightwell can help with"
+        variant="compact"
+      >
+        <Thead>
+          <Tr>
+            <TableHeaderContentWithControls {...tableControls}>
+              <Th {...getThProps({ columnKey: "packageName" })} />
+              <Th {...getThProps({ columnKey: "version" })} />
+              <Th {...getThProps({ columnKey: "recommendedVersion" })} />
+              <Th {...getThProps({ columnKey: "vulnerabilitiesAddressed" })} />
+              <Th {...getThProps({ columnKey: "foundIn" })} />
+            </TableHeaderContentWithControls>
+          </Tr>
+        </Thead>
+        <ConditionalTableBody
+          isNoData={packages.length === 0}
+          numRenderedColumns={numRenderedColumns}
+        >
+          {currentPageItems.map((pkg, rowIndex) => (
+            <Tbody key={pkg.packageId}>
+              <Tr {...getTrProps({ item: pkg })}>
+                <TableRowContentWithControls
+                  {...tableControls}
+                  item={pkg}
+                  rowIndex={rowIndex}
+                >
+                  <Td
+                    width={20}
+                    dataLabel="Package"
+                    {...getTdProps({ columnKey: "packageName" })}
+                  >
+                    {pkg.packageName}
+                  </Td>
+                  <Td
+                    width={15}
+                    dataLabel="Version"
+                    {...getTdProps({ columnKey: "version" })}
+                  >
+                    {pkg.version ?? "--"}
+                  </Td>
+                  <Td
+                    width={20}
+                    dataLabel="Recommended version"
+                    {...getTdProps({ columnKey: "recommendedVersion" })}
+                  >
+                    {pkg.recommendedVersions.length === 0 ? (
+                      "--"
+                    ) : (
+                      <LabelGroup numLabels={VISIBLE_LABELS}>
+                        {pkg.recommendedVersions.map((version) => (
+                          <Label
+                            key={version}
+                            color="green"
+                            variant="outline"
+                            isCompact
+                          >
+                            {version}
+                          </Label>
+                        ))}
+                      </LabelGroup>
+                    )}
+                  </Td>
+                  <Td
+                    width={25}
+                    dataLabel="Vulnerabilities addressed"
+                    {...getTdProps({ columnKey: "vulnerabilitiesAddressed" })}
+                  >
+                    {pkg.vulnerabilityIds.length === 0 ? (
+                      "--"
+                    ) : (
+                      <LabelGroup numLabels={VISIBLE_LABELS}>
+                        {pkg.vulnerabilityIds.map((cveId) => (
+                          <Label
+                            key={cveId}
+                            color="orange"
+                            variant="outline"
+                            isCompact
+                          >
+                            {cveId}
+                          </Label>
+                        ))}
+                      </LabelGroup>
+                    )}
+                  </Td>
+                  <Td
+                    width={20}
+                    dataLabel="Found in"
+                    {...getTdProps({ columnKey: "foundIn" })}
+                  >
+                    <LabelGroup numLabels={VISIBLE_LABELS}>
+                      {pkg.applicationNames.map((name) => (
+                        <Label
+                          key={name}
+                          color="grey"
+                          variant="outline"
+                          isCompact
+                        >
+                          {name}
+                        </Label>
+                      ))}
+                    </LabelGroup>
+                  </Td>
+                </TableRowContentWithControls>
+              </Tr>
+            </Tbody>
+          ))}
+        </ConditionalTableBody>
+      </Table>
+      <SimplePagination
+        idPrefix="lw-report-packages"
+        isTop={false}
+        paginationProps={paginationProps}
+      />
+    </>
+  );
+};
+
 export const LightwellRemediationReportPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -81,16 +320,26 @@ export const LightwellRemediationReportPage: React.FC = () => {
 
   const selectedSboms = React.useMemo(() => {
     if (
-      !isReportState(location.state) ||
-      location.state.selectedSboms.length === 0
+      isReportState(location.state) &&
+      location.state.selectedSboms.length > 0
     ) {
-      return [];
+      return location.state.selectedSboms;
     }
-    return location.state.selectedSboms;
+    const persisted = readPersistedLightwellReportSelection();
+    if (persisted && persisted.length > 0) {
+      return persisted;
+    }
+    // Prototype: allow opening the report URL directly for design review.
+    return getDemoLightwellReportSelection();
   }, [location.state]);
 
   const fromNotification =
-    isReportState(location.state) && location.state.fromNotification === true;
+    (isReportState(location.state) &&
+      location.state.fromNotification === true) ||
+    // Skip loading when recovering from refresh / direct URL (selection already known).
+    !(
+      isReportState(location.state) && location.state.selectedSboms.length > 0
+    );
 
   const selectionKey = selectedSboms.map((sbom) => sbom.id).join(",");
 
@@ -356,24 +605,22 @@ export const LightwellRemediationReportPage: React.FC = () => {
                   >
                     <Thead>
                       <Tr>
-                        <Th width={35}>SBOM</Th>
+                        <Th width={40}>SBOM</Th>
                         <Th width={30}>Addressable packages</Th>
-                        <Th width={35}>Status</Th>
+                        <Th width={30}>Vulnerabilities</Th>
                       </Tr>
                     </Thead>
                     <Tbody>
                       {report.applications.map((application) => (
                         <Tr key={application.id}>
-                          <Td dataLabel="SBOM" width={35}>
+                          <Td dataLabel="SBOM" width={40}>
                             {application.name}
                           </Td>
                           <Td dataLabel="Addressable packages" width={30}>
                             {application.addressablePackageCount}
                           </Td>
-                          <Td dataLabel="Status" width={35}>
-                            <Label color="green" variant="outline" isCompact>
-                              Lightwell can help
-                            </Label>
+                          <Td dataLabel="Vulnerabilities" width={30}>
+                            {application.vulnerabilityCount}
                           </Td>
                         </Tr>
                       ))}
@@ -396,40 +643,7 @@ export const LightwellRemediationReportPage: React.FC = () => {
                     SBOMs.
                   </Content>
                 ) : (
-                  <Table
-                    aria-label="Packages Lightwell can help with"
-                    variant="compact"
-                  >
-                    <Thead>
-                      <Tr>
-                        <Th>Package</Th>
-                        <Th>Version</Th>
-                        <Th>Found in</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {report.packages.map((pkg) => (
-                        <Tr key={pkg.packageId}>
-                          <Td dataLabel="Package">{pkg.packageName}</Td>
-                          <Td dataLabel="Version">{pkg.version ?? "—"}</Td>
-                          <Td dataLabel="Found in">
-                            <div className="lw-report__app-labels">
-                              {pkg.applicationNames.map((name) => (
-                                <Label
-                                  key={name}
-                                  color="grey"
-                                  variant="outline"
-                                  isCompact
-                                >
-                                  {name}
-                                </Label>
-                              ))}
-                            </div>
-                          </Td>
-                        </Tr>
-                      ))}
-                    </Tbody>
-                  </Table>
+                  <LightwellReportPackagesTable packages={report.packages} />
                 )}
               </CardBody>
             </Card>

@@ -30,6 +30,7 @@ import {
   buildLightwellRemediationReport,
   getLightwellReportGenerationDelayMs,
   LIGHTWELL_REPORT_NAVIGATE_THRESHOLD_MS,
+  persistLightwellReportSelection,
   type LightwellRemediationReportLocationState,
 } from "./lightwell-remediation-report";
 import { LightwellReportReadyMessage } from "./lightwell-remediation-report-ready-message";
@@ -118,12 +119,15 @@ export const SbomToolbar: React.FC<SbomToolbarProps> = ({
     });
 
     if (willNavigate) {
+      persistLightwellReportSelection(selectedSboms);
       const state: LightwellRemediationReportLocationState = {
         selectedSboms,
       };
       navigate(Paths.sbomLightwellRemediationReport, { state });
       return;
     }
+
+    persistLightwellReportSelection(selectedSboms);
 
     window.setTimeout(() => {
       try {

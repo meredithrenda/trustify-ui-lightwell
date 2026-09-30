@@ -6,9 +6,10 @@ import { Button } from "@patternfly/react-core";
 import { NotificationsContext } from "@app/components/NotificationsContext";
 import { Paths } from "@app/Routes";
 
-import type {
-  LightwellRemediationReportLocationState,
-  LightwellRemediationSelectedSbom,
+import {
+  persistLightwellReportSelection,
+  type LightwellRemediationReportLocationState,
+  type LightwellRemediationSelectedSbom,
 } from "./lightwell-remediation-report";
 
 type LightwellReportReadyMessageProps = {
@@ -36,6 +37,7 @@ export const LightwellReportReadyMessage: React.FC<
             "Lightwell remediation report is ready",
           );
           setDrawerExpanded(false);
+          persistLightwellReportSelection(selectedSboms);
           const state: LightwellRemediationReportLocationState = {
             selectedSboms,
             fromNotification: true,
