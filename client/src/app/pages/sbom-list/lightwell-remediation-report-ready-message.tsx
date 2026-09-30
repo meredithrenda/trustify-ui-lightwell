@@ -33,16 +33,14 @@ export const LightwellReportReadyMessage: React.FC<
         isInline
         onClick={(event) => {
           event.stopPropagation();
-          markNotificationsReadByTitle(
-            "Lightwell remediation report is ready",
-          );
+          markNotificationsReadByTitle("Remediation report is ready");
           setDrawerExpanded(false);
           persistLightwellReportSelection(selectedSboms);
           const state: LightwellRemediationReportLocationState = {
             selectedSboms,
             fromNotification: true,
           };
-          navigate(Paths.sbomLightwellRemediationReport, { state });
+          navigate(Paths.sbomRemediationReport, { state });
         }}
       >
         View report

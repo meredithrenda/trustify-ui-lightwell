@@ -14,14 +14,14 @@ export const convertLightwellRemediationReportToCSV = (
       report.addressablePackageCount,
     ].join(","),
     "",
-    "SBOMs Lightwell can help with",
+    "SBOMs with remediations",
     "sbom_name,addressable_package_count,vulnerabilities",
     ...report.applications.map(
       (application) =>
         `"${application.name.replace(/"/g, '""')}",${application.addressablePackageCount},${application.vulnerabilityCount}`,
     ),
     "",
-    "Packages Lightwell can help with",
+    "Packages with remediations",
     "package_name,version,recommended_versions,vulnerabilities_addressed,sboms",
     ...report.packages.map((pkg) => {
       const name = pkg.packageName.replace(/"/g, '""');
@@ -42,7 +42,7 @@ export const convertLightwellRemediationReportToCSV = (
 
 export const downloadLightwellRemediationReportCsv = (
   report: LightwellRemediationReport,
-  fileName = "lightwell-remediation-report.csv",
+  fileName = "remediation-report.csv",
 ) => {
   const csv = convertLightwellRemediationReportToCSV(report);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });

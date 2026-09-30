@@ -44,8 +44,7 @@ export type LightwellRemediationReportLocationState = {
   fromNotification?: boolean;
 };
 
-const REPORT_SELECTION_STORAGE_KEY =
-  "lightwell-remediation-report-selected-sboms";
+const REPORT_SELECTION_STORAGE_KEY = "remediation-report-selected-sboms";
 
 /** Persist selection so refresh / HMR does not wipe the prototype report. */
 export const persistLightwellReportSelection = (
@@ -173,7 +172,7 @@ const getRecommendedVersionsForPackage = (
 };
 
 /**
- * Build a Lightwell remediation report for one or more selected SBOMs.
+ * Build a remediation report for one or more selected SBOMs.
  */
 export const buildLightwellRemediationReport = (
   selectedSboms: LightwellRemediationSelectedSbom[],

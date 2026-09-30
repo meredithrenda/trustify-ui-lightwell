@@ -80,6 +80,8 @@ export const Paths = {
   sboms: "/sboms",
   sbomUpload: "/sboms/upload",
   sbomScan: "/sboms/scan",
+  sbomRemediationReport: "/sboms/remediation-report",
+  /** @deprecated Prefer sbomRemediationReport — kept so older demo links still resolve. */
   sbomLightwellRemediationReport: "/sboms/lightwell-remediation-report",
   sbomDetails: `/sboms/:${PathParam.SBOM_ID}`,
   packages: "/packages",
@@ -231,10 +233,20 @@ export const AppRoutes = createBrowserRouter(
           ),
         },
         {
+          path: Paths.sbomRemediationReport,
+          element: (
+            <LazyRouteElement
+              identifier="sbom-remediation-report"
+              component={<LightwellRemediationReport />}
+            />
+          ),
+        },
+        {
+          // Older prototype/demo URL — same report page
           path: Paths.sbomLightwellRemediationReport,
           element: (
             <LazyRouteElement
-              identifier="sbom-lightwell-remediation-report"
+              identifier="sbom-remediation-report-legacy"
               component={<LightwellRemediationReport />}
             />
           ),

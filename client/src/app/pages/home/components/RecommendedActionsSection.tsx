@@ -24,11 +24,11 @@ interface ActionCard {
 
 const ACTIONS: ActionCard[] = [
   {
-    title: "Review Lightwell remediations",
+    title: "Review remediations",
     description:
-      "Select applications and open a Lightwell remediation report to see which packages Lightwell can help address with remediations.",
+      "Select applications and open a remediation report to see which packages have remediations available.",
     linkTo: Paths.sboms,
-    buttonLabel: "Review Lightwell remediations",
+    buttonLabel: "Review remediations",
   },
   {
     title: "Generate vulnerability report",

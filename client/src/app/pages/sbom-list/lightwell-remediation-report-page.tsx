@@ -194,7 +194,7 @@ const LightwellReportPackagesTable: React.FC<{
       </Toolbar>
       <Table
         {...tableProps}
-        aria-label="Packages Lightwell can help with"
+        aria-label="Packages with remediations"
         variant="compact"
       >
         <Thead>
@@ -363,7 +363,7 @@ export const LightwellRemediationReportPage: React.FC = () => {
       }
       setReport(next);
       setIsGenerating(false);
-      markNotificationsReadByTitle("Generating Lightwell remediation report");
+      markNotificationsReadByTitle("Generating remediation report");
     };
 
     if (fromNotification) {
@@ -372,7 +372,7 @@ export const LightwellRemediationReportPage: React.FC = () => {
       } catch {
         setIsGenerating(false);
         pushNotification({
-          title: "Lightwell remediation report failed",
+          title: "Remediation report failed",
           variant: "danger",
           message:
             "The report could not be generated. Try again with fewer SBOMs.",
@@ -393,9 +393,9 @@ export const LightwellRemediationReportPage: React.FC = () => {
         if (!cancelled) {
           setIsGenerating(false);
         }
-        markNotificationsReadByTitle("Generating Lightwell remediation report");
+        markNotificationsReadByTitle("Generating remediation report");
         pushNotification({
-          title: "Lightwell remediation report failed",
+          title: "Remediation report failed",
           variant: "danger",
           message:
             "The report could not be generated. Try again with fewer SBOMs.",
@@ -437,13 +437,13 @@ export const LightwellRemediationReportPage: React.FC = () => {
 
   return (
     <>
-      <DocumentMetadata title="Lightwell remediation report" />
+      <DocumentMetadata title="Remediation report" />
       <PageSection type="breadcrumb">
         <Breadcrumb>
           <BreadcrumbItem>
             <Link to={Paths.sboms}>SBOMs</Link>
           </BreadcrumbItem>
-          <BreadcrumbItem isActive>Lightwell remediation report</BreadcrumbItem>
+          <BreadcrumbItem isActive>Remediation report</BreadcrumbItem>
         </Breadcrumb>
       </PageSection>
 
@@ -451,7 +451,7 @@ export const LightwellRemediationReportPage: React.FC = () => {
         <div className="lw-report__header">
           <div className="lw-report__header-text">
             <Content>
-              <Content component="h1">Lightwell remediation report</Content>
+              <Content component="h1">Remediation report</Content>
               <Content component="p">
                 Impact summary for your selected SBOMs. Download a copy if you
                 want to keep it.
@@ -469,14 +469,13 @@ export const LightwellRemediationReportPage: React.FC = () => {
       <PageSection>
         {isGenerating ? (
           <EmptyState
-            titleText="Generating Lightwell remediation report"
+            titleText="Generating remediation report"
             headingLevel="h4"
             icon={Spinner}
           >
             <EmptyStateBody>
               Analyzing {selectedSboms.length} selected SBOM
-              {selectedSboms.length === 1 ? "" : "s"} for Lightwell
-              remediations.
+              {selectedSboms.length === 1 ? "" : "s"} for remediations.
             </EmptyStateBody>
           </EmptyState>
         ) : !report ? (
@@ -486,8 +485,8 @@ export const LightwellRemediationReportPage: React.FC = () => {
             variant={EmptyStateVariant.sm}
           >
             <EmptyStateBody>
-              Select one or more SBOMs on the SBOMs page, then choose Lightwell
-              remediation report.
+              Select one or more SBOMs on the SBOMs page, then choose Remediation
+              report.
             </EmptyStateBody>
             <EmptyStateFooter>
               <EmptyStateActions>
@@ -501,10 +500,10 @@ export const LightwellRemediationReportPage: React.FC = () => {
           <div className="lw-report">
             <Alert
               variant="custom"
-              title="Lightwell remediations available"
+              title="Remediations available"
               isInline
             >
-              Based on the selected SBOMs, Lightwell can address{" "}
+              Based on the selected SBOMs, remediations can address{" "}
               {report.addressableApplicationCount} of{" "}
               {report.selectedApplicationCount} and{" "}
               {report.addressablePackageCount} related package
@@ -519,7 +518,7 @@ export const LightwellRemediationReportPage: React.FC = () => {
                 <div className="lw-report__impact-grid">
                   <div className="lw-report__stat">
                     <div className="lw-report__stat-label">
-                      SBOMs Lightwell can address
+                      SBOMs with remediations
                     </div>
                     <div className="lw-report__stat-value">
                       {report.addressableApplicationCount}
@@ -534,7 +533,7 @@ export const LightwellRemediationReportPage: React.FC = () => {
                   </div>
                   <div className="lw-report__stat">
                     <div className="lw-report__stat-label">
-                      Packages Lightwell can address
+                      Packages with remediations
                     </div>
                     <div className="lw-report__stat-value">
                       {report.addressablePackageCount}
@@ -551,7 +550,7 @@ export const LightwellRemediationReportPage: React.FC = () => {
                     title="SBOM coverage"
                     measureLocation={ProgressMeasureLocation.outside}
                     size={ProgressSize.md}
-                    aria-label="Percent of selected SBOMs Lightwell can address"
+                    aria-label="Percent of selected SBOMs with remediations"
                   />
                 </div>
 
@@ -589,18 +588,17 @@ export const LightwellRemediationReportPage: React.FC = () => {
             <Card>
               <CardTitle>
                 <span className="lw-report__card-title">
-                  SBOMs Lightwell can help with
+                  SBOMs with remediations
                 </span>
               </CardTitle>
               <CardBody>
                 {report.applications.length === 0 ? (
                   <Content component="p" className="lw-report__empty">
-                    None of the selected SBOMs have Lightwell remediations
-                    available.
+                    None of the selected SBOMs have remediations available.
                   </Content>
                 ) : (
                   <Table
-                    aria-label="SBOMs Lightwell can help with"
+                    aria-label="SBOMs with remediations"
                     variant="compact"
                   >
                     <Thead>
@@ -633,14 +631,13 @@ export const LightwellRemediationReportPage: React.FC = () => {
             <Card>
               <CardTitle>
                 <span className="lw-report__card-title">
-                  Packages Lightwell can help with
+                  Packages with remediations
                 </span>
               </CardTitle>
               <CardBody>
                 {report.packages.length === 0 ? (
                   <Content component="p" className="lw-report__empty">
-                    No Lightwell-addressable packages were found in the selected
-                    SBOMs.
+                    No addressable packages were found in the selected SBOMs.
                   </Content>
                 ) : (
                   <LightwellReportPackagesTable packages={report.packages} />
@@ -660,7 +657,7 @@ export const LightwellRemediationReportPage: React.FC = () => {
           title={
             isGenerating
               ? "Leave while report is generating?"
-              : "Leave Lightwell remediation report?"
+              : "Leave remediation report?"
           }
         />
         <ModalBody>

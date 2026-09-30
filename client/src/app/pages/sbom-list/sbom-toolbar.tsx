@@ -111,7 +111,7 @@ export const SbomToolbar: React.FC<SbomToolbarProps> = ({
     const willNavigate = delayMs <= LIGHTWELL_REPORT_NAVIGATE_THRESHOLD_MS;
 
     pushNotification({
-      title: "Generating Lightwell remediation report",
+      title: "Generating remediation report",
       variant: "info",
       message: willNavigate
         ? `Analyzing ${count} selected SBOM${count === 1 ? "" : "s"}.`
@@ -123,7 +123,7 @@ export const SbomToolbar: React.FC<SbomToolbarProps> = ({
       const state: LightwellRemediationReportLocationState = {
         selectedSboms,
       };
-      navigate(Paths.sbomLightwellRemediationReport, { state });
+      navigate(Paths.sbomRemediationReport, { state });
       return;
     }
 
@@ -132,11 +132,9 @@ export const SbomToolbar: React.FC<SbomToolbarProps> = ({
     window.setTimeout(() => {
       try {
         buildLightwellRemediationReport(selectedSboms);
-        markNotificationsReadByTitle(
-          "Generating Lightwell remediation report",
-        );
+        markNotificationsReadByTitle("Generating remediation report");
         pushNotification({
-          title: "Lightwell remediation report is ready",
+          title: "Remediation report is ready",
           variant: "success",
           message: (
             <LightwellReportReadyMessage
@@ -146,9 +144,9 @@ export const SbomToolbar: React.FC<SbomToolbarProps> = ({
           ),
         });
       } catch {
-        markNotificationsReadByTitle("Generating Lightwell remediation report");
+        markNotificationsReadByTitle("Generating remediation report");
         pushNotification({
-          title: "Lightwell remediation report failed",
+          title: "Remediation report failed",
           variant: "danger",
           message:
             "The report could not be generated. Try again with fewer SBOMs.",
@@ -247,7 +245,7 @@ export const SbomToolbar: React.FC<SbomToolbarProps> = ({
                   isDisabled={!hasSelectedSboms}
                   onClick={handleLightwellRemediationReport}
                 >
-                  Lightwell remediation report
+                  Remediation report
                 </Button>
               </ToolbarItem>
             </ToolbarGroup>
