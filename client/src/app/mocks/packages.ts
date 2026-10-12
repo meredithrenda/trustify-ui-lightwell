@@ -63,6 +63,21 @@ export const getMockSbomPackages = (sbomId: string): SbomPackage[] => {
     return selected.map((pkg, index) => toRow(pkg, index));
   }
 
+  // AMQ Streams: packages with no remediations — used to demo the empty report.
+  if (sbomId === "a1b2c3d4-0004-4000-8000-000000000004") {
+    const noRemediationIds = new Set([
+      "pkg-004",
+      "pkg-005",
+      "pkg-006",
+      "pkg-009",
+      "pkg-010",
+    ]);
+    const selected = mockPackages.filter((pkg) =>
+      noRemediationIds.has(pkg.uuid),
+    );
+    return selected.map((pkg, index) => toRow(pkg, index));
+  }
+
   // Rotate a stable slice of mock packages per SBOM so every detail page has rows.
   const seed = [...sbomId].reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
   const start = seed % mockPackages.length;

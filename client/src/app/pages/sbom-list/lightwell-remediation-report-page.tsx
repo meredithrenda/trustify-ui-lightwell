@@ -49,6 +49,7 @@ import {
   Tr,
 } from "@patternfly/react-table";
 import DownloadIcon from "@patternfly/react-icons/dist/esm/icons/download-icon";
+import SearchIcon from "@patternfly/react-icons/dist/esm/icons/search-icon";
 
 import { DocumentMetadata } from "@app/components/DocumentMetadata";
 import { FilterToolbar, FilterType } from "@app/components/FilterToolbar";
@@ -496,13 +497,37 @@ export const LightwellRemediationReportPage: React.FC = () => {
               </EmptyStateActions>
             </EmptyStateFooter>
           </EmptyState>
+        ) : report.addressableApplicationCount === 0 ? (
+          <div className="lw-report">
+            <Alert variant="info" title="No remediations available" isInline>
+              Based on the selected SBOMs, remediations can address 0 of{" "}
+              {report.selectedApplicationCount} and 0 related packages.
+            </Alert>
+            <EmptyState
+              headingLevel="h4"
+              titleText="No remediations available"
+              icon={SearchIcon}
+              variant={EmptyStateVariant.sm}
+            >
+              <EmptyStateBody>
+                None of the selected SBOMs have remediations available. Try a
+                different selection, or go back to the SBOMs page.
+              </EmptyStateBody>
+              <EmptyStateFooter>
+                <EmptyStateActions>
+                  <Button
+                    variant="primary"
+                    onClick={() => navigate(Paths.sboms)}
+                  >
+                    Back to SBOMs
+                  </Button>
+                </EmptyStateActions>
+              </EmptyStateFooter>
+            </EmptyState>
+          </div>
         ) : (
           <div className="lw-report">
-            <Alert
-              variant="custom"
-              title="Remediations available"
-              isInline
-            >
+            <Alert variant="custom" title="Remediations available" isInline>
               Based on the selected SBOMs, remediations can address{" "}
               {report.addressableApplicationCount} of{" "}
               {report.selectedApplicationCount} and{" "}
@@ -592,39 +617,33 @@ export const LightwellRemediationReportPage: React.FC = () => {
                 </span>
               </CardTitle>
               <CardBody>
-                {report.applications.length === 0 ? (
-                  <Content component="p" className="lw-report__empty">
-                    None of the selected SBOMs have remediations available.
-                  </Content>
-                ) : (
-                  <Table
-                    aria-label="SBOMs with remediations"
-                    variant="compact"
-                  >
-                    <Thead>
-                      <Tr>
-                        <Th width={40}>SBOM</Th>
-                        <Th width={30}>Addressable packages</Th>
-                        <Th width={30}>Vulnerabilities</Th>
+                <Table
+                  aria-label="SBOMs with remediations"
+                  variant="compact"
+                >
+                  <Thead>
+                    <Tr>
+                      <Th width={40}>SBOM</Th>
+                      <Th width={30}>Addressable packages</Th>
+                      <Th width={30}>Vulnerabilities</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {report.applications.map((application) => (
+                      <Tr key={application.id}>
+                        <Td dataLabel="SBOM" width={40}>
+                          {application.name}
+                        </Td>
+                        <Td dataLabel="Addressable packages" width={30}>
+                          {application.addressablePackageCount}
+                        </Td>
+                        <Td dataLabel="Vulnerabilities" width={30}>
+                          {application.vulnerabilityCount}
+                        </Td>
                       </Tr>
-                    </Thead>
-                    <Tbody>
-                      {report.applications.map((application) => (
-                        <Tr key={application.id}>
-                          <Td dataLabel="SBOM" width={40}>
-                            {application.name}
-                          </Td>
-                          <Td dataLabel="Addressable packages" width={30}>
-                            {application.addressablePackageCount}
-                          </Td>
-                          <Td dataLabel="Vulnerabilities" width={30}>
-                            {application.vulnerabilityCount}
-                          </Td>
-                        </Tr>
-                      ))}
-                    </Tbody>
-                  </Table>
-                )}
+                    ))}
+                  </Tbody>
+                </Table>
               </CardBody>
             </Card>
 
@@ -635,13 +654,7 @@ export const LightwellRemediationReportPage: React.FC = () => {
                 </span>
               </CardTitle>
               <CardBody>
-                {report.packages.length === 0 ? (
-                  <Content component="p" className="lw-report__empty">
-                    No addressable packages were found in the selected SBOMs.
-                  </Content>
-                ) : (
-                  <LightwellReportPackagesTable packages={report.packages} />
-                )}
+                <LightwellReportPackagesTable packages={report.packages} />
               </CardBody>
             </Card>
           </div>

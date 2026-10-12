@@ -186,10 +186,16 @@ export const buildLightwellRemediationReport = (
       mockSboms.find((item) => item.id === sbom.id)?.name ||
       sbom.id;
     const packages = getMockSbomPackages(sbom.id);
-    const addressable = packages.filter((pkg) => {
-      const packageId = pkg.purl[0]?.uuid ?? pkg.id;
-      return packageHasLightwellRemediation(packageId, pkg.name);
-    });
+    // Prototype: AMQ Streams is the no-remediations demo SBOM.
+    const forceEmpty =
+      sbom.id === "a1b2c3d4-0004-4000-8000-000000000004" ||
+      name === "AMQ Streams 2.7";
+    const addressable = forceEmpty
+      ? []
+      : packages.filter((pkg) => {
+          const packageId = pkg.purl[0]?.uuid ?? pkg.id;
+          return packageHasLightwellRemediation(packageId, pkg.name);
+        });
 
     const vulnerabilityIdsForSbom = new Set<string>();
     for (const pkg of addressable) {
